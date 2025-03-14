@@ -1,24 +1,39 @@
-# Use a Node.js image for frontend
-FROM node:20-alpine
+# Use Node.js to build the frontend
+FROM node:18-alpine AS builder
 
 # Set working directory
 WORKDIR /app
 
-# Copy frontend files
-COPY . /app
+# Copy package.json and yarn.lock first (for better caching)
+COPY package.json yarn.lock ./
 
 # Install dependencies
-RUN npm install
+RUN yarn install
+
+# Fix outdated caniuse-lite
+RUN npx browserslist@latest --update-db
+
+# Copy all project files
+COPY . .
 
 # Build the frontend
-RUN npm run build
+RUN yarn build
 
-# Use an Nginx server to serve the React app
+# Use Nginx as the web server
 FROM nginx:alpine
-COPY --from=0 /app/build /usr/share/nginx/html
 
-# Expose Nginx default port
+# Remove the default Nginx config
+RUN rm -rf /usr/share/nginx/html/*
+
+# Copy build files from builder stage
+COPY --from=builder /app/build /usr/share/nginx/html
+
+# Copy custom Nginx config (optional)
+COPY nginx.conf /etc/nginx/nginx.conf
+
+# Expose port 80
 EXPOSE 80
 
 # Start Nginx
 CMD ["nginx", "-g", "daemon off;"]
+
