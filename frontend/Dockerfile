@@ -5,7 +5,7 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Copy frontend files
-COPY frontend /app
+COPY . /app
 
 # Install dependencies
 RUN npm install
